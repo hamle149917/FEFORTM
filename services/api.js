@@ -12,10 +12,20 @@ export const api = {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-    });
+    let response;
+
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers,
+      });
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(`Unable to reach the API at ${API_BASE_URL}. Start the backend or set NEXT_PUBLIC_API_URL.`);
+      }
+
+      throw error;
+    }
 
     const data = await response.json().catch(() => ({}));
 
