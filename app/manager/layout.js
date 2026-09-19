@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useChatNotifications } from '@/context/ChatNotificationContext';
 
 const links = [
   { href: '/manager', label: 'Dashboard' },
@@ -18,6 +19,7 @@ const links = [
 export default function ManagerLayout({ children }) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { unreadCount } = useChatNotifications();
 
   return (
     <div className="min-h-screen app-shell">
@@ -35,7 +37,14 @@ export default function ManagerLayout({ children }) {
                 href={link.href}
                 className={`sidebar-link block rounded-xl px-4 py-3 text-sm font-medium transition ${pathname === link.href ? 'sidebar-link-active' : ''}`}
               >
-                {link.label}
+                <span className="flex items-center justify-between gap-3">
+                  {link.label}
+                  {link.href === '/manager/chat' && unreadCount > 0 ? (
+                    <span className="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[11px] font-bold leading-4 text-white">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             ))}
           </nav>
