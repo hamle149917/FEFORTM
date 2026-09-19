@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 export default function MemberTasksPage() {
   const [tasks, setTasks] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -34,15 +36,26 @@ export default function MemberTasksPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: formData,
-      });
+      try {
+        const res = await fetch(`${API_BASE_URL}/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'File upload failed');
-      uploaded.push({ name: file.name, url: data.url });
+        if (!res.ok) {
+          throw new Error(data.message || `File upload failed (${res.status}).`);
+        }
+
+        uploaded.push({ name: file.name, url: data.url });
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new Error(`Unable to reach the file upload API at ${API_BASE_URL}/upload.`);
+        }
+
+        throw error;
+      }
     }
 
     return uploaded;
@@ -54,20 +67,30 @@ export default function MemberTasksPage() {
     try {
       const files = drafts[taskId]?.files || [];
       const filesToSubmit = files.length ? await uploadFiles(files) : [];
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/tasks/${taskId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          submissionMessage: drafts[taskId]?.message || '',
-          files: filesToSubmit,
-        }),
-      });
+      let res;
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Task submit failed');
+      try {
+        res = await fetch(`${API_BASE_URL}/tasks/${taskId}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            submissionMessage: drafts[taskId]?.message || '',
+            files: filesToSubmit,
+          }),
+        });
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new Error(`Unable to reach the task API at ${API_BASE_URL}/tasks/${taskId}/submit.`);
+        }
+
+        throw error;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Task submit failed (${res.status}).`);
       setDrafts((current) => ({ ...current, [taskId]: { files: [], message: '' } }));
       await loadTasks();
       alert('Task submitted successfully');
