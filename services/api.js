@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
 export const api = {
   async request(path, options = {}) {
@@ -21,7 +21,7 @@ export const api = {
       });
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new Error(`Unable to reach the API at ${API_BASE_URL}. Start the backend or set NEXT_PUBLIC_API_URL.`);
+        throw new Error(`The API request was blocked or unavailable at ${API_BASE_URL}. Check your connection, the API deployment, and browser CORS settings.`);
       }
 
       throw error;
